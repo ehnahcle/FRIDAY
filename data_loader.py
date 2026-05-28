@@ -342,6 +342,30 @@ def get_fundamentals(ticker: str) -> Dict:
         return {"ticker": ticker, "error": str(e)}
 
 
+_NUMERIC_FUND_COLS = [
+    "market_cap", "shares_out", "price",
+    "pe", "pe_forward", "pb", "ps", "ev_ebitda", "ev_revenue",
+    "fcf", "ebitda", "roe", "roa",
+    "gross_margins", "operating_margins", "profit_margins",
+    "debt_to_equity", "current_ratio", "ocf", "net_income",
+    "total_revenue", "total_assets", "total_debt", "total_cash",
+    "dividend_yield", "payout_ratio",
+    "revenue_growth", "earnings_growth", "earnings_quarterly_growth",
+    "trailing_eps", "forward_eps", "beta",
+    "fifty_two_week_low", "fifty_two_week_high",
+    "shares_change_yoy", "fcf_yield", "p_fcf",
+    "gp_to_assets", "debt_to_ebitda", "ocf_to_ni", "eps_revision",
+]
+
+
+def _coerce_numeric(df: pd.DataFrame) -> pd.DataFrame:
+    """R1000 universe에선 yfinance가 가끔 string 'Infinity' / 'N/A' 던짐 — 강제 변환."""
+    for col in _NUMERIC_FUND_COLS:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+    return df
+
+
 def get_fundamentals_batch(
     tickers: List[str], use_cache: bool = True
 ) -> pd.DataFrame:
@@ -350,7 +374,7 @@ def get_fundamentals_batch(
     if use_cache and _is_cache_fresh(cache_name, max_age_hours=12):
         df = _load_cache(cache_name)
         if set(tickers).issubset(set(df["ticker"].tolist())):
-            return df[df["ticker"].isin(tickers)].copy()
+            return _coerce_numeric(df[df["ticker"].isin(tickers)].copy())
 
     rows = []
     for i, ticker in enumerate(tickers):
@@ -360,6 +384,7 @@ def get_fundamentals_batch(
         time.sleep(0.1)
 
     df = pd.DataFrame(rows)
+    df = _coerce_numeric(df)
     _save_cache(cache_name, df)
     return df
 
