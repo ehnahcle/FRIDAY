@@ -1,0 +1,28 @@
+# 보안: API 키
+.env
+.env.*
+
+# Python 가상환경
+venv/
+__pycache__/
+*.pyc
+
+# 캐시
+.friday_cache/
+
+# 백테스트 보관 폴더 (운영 무관, Phase 24 산출물은 git-tracked)
+# archive/ 자체는 트래킹, 단 archive/data_cache/ 같은 큰 캐시만 ignore
+archive/data_cache/
+
+# Vol-Managed state — git-tracked (Streamlit Cloud가 읽음)
+# volmanage_state.json
+
+# Mac
+.DS_Store
+
+# VS Code
+.vscode/
+
+# 임시
+*.log
+*.tmp
