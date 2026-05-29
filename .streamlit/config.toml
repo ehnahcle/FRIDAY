@@ -1,7 +1,2 @@
-[server]
-# FRIDAY 기본 포트 8502 — quant_tool ROCKET dashboard(8501)와 분리
-port = 8502
-headless = false
-
 [browser]
 gatherUsageStats = false
