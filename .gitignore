@@ -26,3 +26,8 @@ archive/data_cache/
 # 임시
 *.log
 *.tmp
+
+# SURGE 백테 raw record (regenerable, 대용량 — dashboard는 summary json만 읽음)
+surge_backtest_records.csv
+surge_backtest_hardened.csv
+surge_attention_fwdtest.csv

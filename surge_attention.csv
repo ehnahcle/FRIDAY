@@ -1,0 +1,7 @@
+ticker,name,surge_ai_score,surge_score,attention_score,ai_attention,narrative,catalyst_type,news_7d,news_spike,thesis
+IBRX,"ImmunityBio, Inc.",74.20838468987584,77.14451291983445,65.4,62,rising,clinical/FDA,15,3.29,"Strong news spike, elevated volume, ASCO data + FDA review fuel oncology narrative. Class action noise is negative signal."
+KOD,Kodiak Sciences Inc,67.99650676121963,81.99534234829285,26.0,28,flat,conference,1,1.1,"Conference presentation is routine visibility; minimal news spike, low volume. No catalytic news."
+DNTH,"Dianthus Therapeutics, Inc.",63.22756386661193,73.53675182214924,32.3,38,flat,conference,2,1.1,"Modest news spike, sub-baseline volume. Conference participation lacks immediacy; platform still pre-catalyst."
+ELVN,"Enliven Therapeutics, Inc.",60.3459588211892,74.22794509491894,18.7,22,fading,none,1,0.66,"Insider selling is cautionary; weak news spike, low volume. Negative sentiment signal."
+GLUE,"Monte Rosa Therapeutics, Inc.",60.330760222006866,76.84101362934248,10.8,15,flat,none,0,0.0,"Zero news, baseline volume. No narrative or attention building."
+CAPR,"Capricor Therapeutics, Inc.",59.30646381593816,76.67528508791754,7.2,12,flat,none,0,0.0,"No recent news, sub-baseline volume. Dead on attention metrics."

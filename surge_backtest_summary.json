@@ -1,0 +1,43 @@
+{
+  "as_of": "2026-06-02",
+  "scope": "500 live + 63 delisted small-caps, 150 weekly dates, 2023-05 ~ 2026-05 (~3y), 36,454 observations",
+  "headline": "Surge OCCURRENCE is robustly predictable (3.5x lift, monotonic, survivorship-corrected). Net trading profit is real but fragile: ~+1%/trade on the top decile only, and only with vol-appropriate wide/ATR exits + controlled slippage. Outside the top decile it is breakeven-to-negative.",
+  "occurrence": {
+    "desc": "forward 7-day high reaching threshold (surge happened)",
+    "hit25_base": 0.0359,
+    "hit25_top10": 0.1260,
+    "hit25_lift": 3.5,
+    "hit30_base": 0.0234,
+    "hit30_top10": 0.0967,
+    "quintile_hit25": {"Q1": 0.015, "Q2": 0.018, "Q3": 0.020, "Q4": 0.035, "Q5": 0.091}
+  },
+  "net_trade_by_exit": {
+    "desc": "realistic net: entry T+1 open, target/stop/timeout exit, 100bps round-trip slippage, top-10 by score",
+    "rows": [
+      {"exit": "fixed +20% / -10%", "top10_net": 0.0027, "win": 0.435, "note": "stop too tight -> 486 noise stop-outs"},
+      {"exit": "fixed +30% / -20%", "top10_net": 0.0097, "win": 0.467, "note": "widening kills noise stops (116)"},
+      {"exit": "ATR 4.0x / 2.5x (avg +19%/-12%)", "top10_net": 0.0102, "win": 0.465, "note": "vol-adaptive, marginal best, more principled"}
+    ],
+    "all_gated_net_atr": -0.0036,
+    "quintile_net_atr": {"Q1": -0.0025, "Q2": -0.0048, "Q3": -0.0069, "Q4": -0.0040, "Q5": 0.0001}
+  },
+  "survivorship_check": {
+    "desc": "delisted names drag returns -> naive (survivor-only) backtest was optimistic",
+    "live_net": -0.0033,
+    "delisted_net": -0.0081
+  },
+  "attention_forwardtest": {
+    "desc": "Does an attention re-rank beat raw pre_score? proxy = RVOL (look-ahead-safe). 2,996 pool-obs / 150 dates. News/Claude attention NOT testable (FMP historical news 402-gated; LLM hindsight contamination).",
+    "top10_pick": {"RAW_pre_score": 0.0097, "RVOL_attention_only": 0.0002, "BLEND_50_50": 0.0063},
+    "rvol_quintile_hit25": {"A1_low": 0.110, "A5_high": 0.150},
+    "rvol_quintile_net": {"A1_low": 0.0180, "A3": 0.0001, "A5_high": 0.0023},
+    "finding": "High attention (RVOL) predicts MORE surges but WORSE net return (inverse). Chasing volume = chasing already-noticed names = higher reversal risk. Coiled (low-RVOL, not-yet-noticed) names earn the most. => Use the AI layer to DEMOTE late/exhausted names (fade-filter), NOT to chase high-attention ones."
+  },
+  "caveats": [
+    "Survivorship only PARTIALLY corrected — FMP delisted-companies surfaces mostly recent (2026) delistings; 2022-25 delistings under-covered.",
+    "fuel (short float) and catalyst (analyst) overlays NOT historically validated; only the OHLCV signal (readiness+explosiveness) is backtested.",
+    "Single regime (2023-2026, mostly bullish/high-dispersion). No bear-market stress test.",
+    "Entry at T+1 open and same-bar target/stop are approximations; real fills differ.",
+    "Claude rising/fading narrative is a LIVE-only hypothesis — not forward-tested (hindsight + no historical news)."
+  ]
+}

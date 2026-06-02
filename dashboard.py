@@ -70,24 +70,62 @@ def load_portfolio() -> dict:
         return {"holdings": {}, "cash": 0}
 
 
+@st.cache_data(ttl=300)
+def load_surge():
+    """surge_results.csv (단타 SURGE 후보) + 갱신시각"""
+    csv = Path("surge_results.csv")
+    if not csv.exists():
+        return None, None
+    df = pd.read_csv(csv)
+    ts = datetime.fromtimestamp(csv.stat().st_mtime)
+    return df, ts
+
+
+@st.cache_data(ttl=300)
+def load_surge_attention():
+    """surge_attention.csv (AI attention re-rank) — 있으면"""
+    csv = Path("surge_attention.csv")
+    if not csv.exists():
+        return None, None
+    df = pd.read_csv(csv)
+    ts = datetime.fromtimestamp(csv.stat().st_mtime)
+    return df, ts
+
+
+def load_surge_backtest() -> dict:
+    """surge_backtest_summary.json (검증 결과 스냅샷)"""
+    p = Path("surge_backtest_summary.json")
+    if p.exists():
+        try:
+            with open(p) as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+
 # ============================================================
 # 사이드바 — Macro + Vol-Managed
 # ============================================================
 st.sidebar.header("🚀 SPACE — Cap20 / Hold20")
 st.sidebar.caption("R1000 + ADV20 $5M + α=10 slip + VM30")
 
-with st.sidebar.expander("📊 백테스트 결과 (Phase 24 PIT, 2015-2025)", expanded=False):
+with st.sidebar.expander("📊 백테스트 결과 (Phase 26 live-faithful, 2015-2025)", expanded=False):
     st.markdown("""
     | 지표 | + VM30 ⭐ | no VM |
     |---|---|---|
-    | 연 수익 | **26.96%** | 26.82% |
-    | Sharpe | **0.757** | 0.707 |
-    | MDD | **-42.4%** | -50.1% |
-    | Calmar | **0.636** | 0.535 |
-    | 변동성 | 34.0% | 38.6% |
+    | 연 수익 | **24.99%** | 24.19% |
+    | Sharpe | **0.703** | 0.644 |
+    | MDD | **-49.1%** | -59.4% |
+    | Calmar | **0.509** | 0.407 |
+    | 변동성 | 34.7% | 39.9% |
 
-    **vs ROCKET (Ph17)**: ΔCAGR +9.1pp / ΔSh +0.149 / Vol +7.7pp / MDD -5.4pp.
-    Pareto 아님 (high-CAGR/high-vol cousin).
+    **vs ROCKET (Ph17, 17.9%/0.61/-37%/0.48)**: ΔCAGR +7.1pp / ΔSh +0.09.
+    Calmar edge 미미, MDD 는 ROCKET 보다 깊음 (high-CAGR/high-vol cousin).
+
+    ⚠️ Phase 24 헤드라인 27.0%/0.76 은 sector-map 버그 artifact (유니버스
+    ~50%가 'Unknown' → 숨은 large-cap 틸트). 위 수치는 real-sector 재실행
+    (Phase 26b) = live screener 와 동일 동작. survivorship 상 upper bound.
     """)
 
 # Vol-Managed 패널
@@ -220,8 +258,8 @@ space_picks = df[df["space_rank"].notna()].copy().sort_values("space_rank")
 # ============================================================
 # 메인 탭
 # ============================================================
-tab_picks, tab_pf, tab_alerts, tab_about = st.tabs(
-    ["🏆 Top Picks", "💼 Portfolio", "⚠️ Alerts (참고)", "ℹ️ About"]
+tab_picks, tab_surge, tab_pf, tab_alerts, tab_about = st.tabs(
+    ["🏆 Top Picks", "🚀 SURGE (단타)", "💼 Portfolio", "⚠️ Alerts (참고)", "ℹ️ About"]
 )
 
 # ============================================================
@@ -452,9 +490,9 @@ with tab_alerts:
 
     st.info("""
     💡 **SELL_NOW 룰 비활성 (2026-05-28 결정)** — Phase 24 백테 환경 일치 (`backtest_phase24_r1000.py`
-    에서 VOLATILITY_SPIKE/MASSIVE_DILUTION/DEEP_DRAWDOWN/TREND_BREAK 코드 0건, 27.0%/Sh 0.76
-    결과는 pure picker + ADV20 gate + size-slip만으로 도달). 보유 종목은 분기 rebal까지 무조건 hold,
-    R1000 변동성 38% 감수, Vol-Managed 30% layer가 1차 risk 관리.
+    에서 VOLATILITY_SPIKE/MASSIVE_DILUTION/DEEP_DRAWDOWN/TREND_BREAK 코드 0건, 백테 결과는
+    pure picker + ADV20 gate + size-slip만으로 도달). 보유 종목은 분기 rebal까지 무조건 hold,
+    R1000 변동성 ~40% 감수, Vol-Managed 30% layer가 1차 risk 관리.
 
     아래 표는 **참고 정보 only** — 자동 매도 트리거 X. 데이터로서만 표시.
     """)
@@ -532,7 +570,7 @@ with tab_about:
 
     **두 시스템 병행 운영**:
     - 🌟 [ROCKET](https://github.com/ehnahcle/Quant-Tool) (quant_tool): SP500, C80_E20, 백테 17.9%/Sh 0.61
-    - 🚀 **FRIDAY** (이 시스템): R1000, C80_E20 + ADV20 $5M, 백테 **27.0%/Sh 0.76**
+    - 🚀 **FRIDAY** (이 시스템): R1000, C80_E20 + ADV20 $5M, 백테 **25.0%/Sh 0.70** (Phase 26b live-faithful)
     """)
 
     st.divider()
@@ -544,7 +582,8 @@ with tab_about:
     sector cap (Ph22/22b), 모멘텀 정의 자체 (Ph23 residual/skip-1) 모두 saturated.
 
     Phase 20 메타 진단: "더 짜내려면 **데이터 차원 (R1000/R3000 확장)** 또는 운영 차원 (세금)".
-    Phase 24가 그 데이터 차원 가설을 **확정** — Russell 1000으로 확장 시 진짜 알파 +8.7pp 존재.
+    Phase 24/26b가 그 데이터 차원 가설을 확정 — Russell 1000 확장 시 진짜 알파 **+6.1pp** 존재
+    (live-faithful real-sector 재실행 기준; Phase 24 헤드라인 +8.7pp는 sector-map 버그로 과대).
     """)
 
     st.divider()
@@ -566,7 +605,7 @@ with tab_about:
 
     st.divider()
 
-    st.markdown("### 📊 Phase 24 백테스트 (2015-2025) — 4-mode 분해")
+    st.markdown("### 📊 백테스트 (2015-2025) — 4-mode 분해 (Phase 26b live-faithful, real-sector)")
     space_bt = {
         "모드": [
             "SP500 sanity (universe만 변경)",
@@ -575,11 +614,11 @@ with tab_about:
             "🚀 R1000 + gate + slip α=10",
             "🛡️ R1000 + gate + slip + VM30 ⭐",
         ],
-        "연 수익": ["18.11%", "3.07%", "28.19%", "26.82%", "**26.96%** ⭐"],
-        "Sharpe": ["0.592", "0.292", "0.736", "0.707", "**0.757** ⭐"],
-        "MDD": ["-40.1%", "-83.2%", "-49.1%", "-50.1%", "**-42.4%** ⭐"],
-        "Calmar": ["0.452", "0.16", "0.574", "0.535", "**0.636** ⭐"],
-        "변동성": ["28.2%", "—", "—", "38.6%", "34.0%"],
+        "연 수익": ["18.11%", "3.13%", "25.77%", "24.19%", "**24.99%** ⭐"],
+        "Sharpe": ["0.592", "0.297", "0.676", "0.644", "**0.703** ⭐"],
+        "MDD": ["-40.1%", "-83.3%", "-58.1%", "-59.4%", "**-49.1%** ⭐"],
+        "Calmar": ["0.452", "0.037", "0.444", "0.407", "**0.509** ⭐"],
+        "변동성": ["28.2%", "—", "39.8%", "39.9%", "34.7%"],
         "비고": [
             "Phase 16 baseline 재현 ✓",
             "gate 없으면 슬리피지가 알파 다 먹음",
@@ -591,19 +630,19 @@ with tab_about:
     st.dataframe(pd.DataFrame(space_bt), hide_index=True, width="stretch")
 
     st.markdown("""
-    #### 📊 3-way 알파 분해 (vs SP500 baseline)
+    #### 📊 3-way 알파 분해 (vs SP500 baseline, live-faithful)
     | 효과 | ΔCAGR | ΔSharpe | 의미 |
     |---|---|---|---|
-    | Universe expansion (R1000 raw) | **+10.08pp** | +0.144 | R1000 small/mid-cap 모멘텀 알파 |
-    | Size-slip cost (α=10) | -1.37pp | -0.029 | 작은 종목 거래비용 |
-    | Gate 보호 효과 ($5M ADV20) | **+23.75pp** | +0.415 | 슬리피지로부터 알파 보호, **결정적** |
-    | **Net Phase 24 r1000** | **+8.71pp** | **+0.115** | gate가 없으면 R1000 알파 못 살림 |
+    | Universe expansion (R1000 raw) | **+7.66pp** | +0.084 | R1000 small/mid-cap 모멘텀 알파 |
+    | Size-slip cost (α=10) | -1.58pp | -0.032 | 작은 종목 거래비용 |
+    | Gate 보호 효과 ($5M ADV20) | **+21.06pp** | +0.347 | 슬리피지로부터 알파 보호, **결정적** |
+    | **Net r1000 (gate+slip)** | **+6.08pp** | **+0.052** | gate가 없으면 R1000 알파 못 살림 |
 
-    #### 🔬 9-cell sensitivity (fragile-spike 검증 통과)
-    α ∈ {5, 10, 20} × ADV20 ∈ {$2M, $5M, $10M} grid:
-    - **CAGR range**: 24.41% (α=20, $10M) ~ 27.50% (α=5, $5M) — **9개 셀 모두 SP500 baseline 위**
-    - α 단조 감소, ADV20 inverted-U peak at **$5M** sweet spot
-    - 최악 코너 셀 24.41% / Sh 0.657 → 여전히 +6.3pp / +0.063 vs SP500
+    #### 🔬 9-cell sensitivity
+    α ∈ {5, 10, 20} × ADV20 ∈ {$2M, $5M, $10M} grid (Phase 24, **old sector_map**):
+    - ADV20 inverted-U peak at **$5M** sweet spot, α 단조 감소 — plateau 모양은 유지.
+    - ⚠️ 절대 수준은 sector-map 버그로 ~2pp 과대. real-sector 재실행 시 전 셀 약 -2pp shift
+      (peak ≈ 25%대), $5M sweet spot 결론 불변. 정밀 재검증 pending.
     """)
 
     st.divider()
@@ -612,14 +651,15 @@ with tab_about:
     compare = {
         "지표": ["연 수익", "Sharpe", "MDD", "Calmar", "변동성", "Universe", "운영"],
         "🌟 ROCKET (Ph17)": ["17.89%", "0.608", "-37.03%", "0.483", "26.3%", "SP500 ~500", "실전"],
-        "🚀 SPACE (Ph24)": ["**26.96%**", "**0.757**", "-42.41%", "**0.636**", "34.0%", "R1000 ~1000", "FRIDAY"],
-        "Δ (SPACE − ROCKET)": ["**+9.07pp**", "**+0.149**", "-5.4pp ⚠️", "**+0.153**", "+7.7pp ⚠️", "≈2× 확장", "—"],
+        "🚀 SPACE (Ph26b)": ["**24.99%**", "**0.703**", "-49.11%", "0.509", "34.7%", "R1000 ~1000", "FRIDAY"],
+        "Δ (SPACE − ROCKET)": ["**+7.10pp**", "**+0.095**", "-12.1pp ⚠️", "+0.026", "+8.4pp ⚠️", "≈2× 확장", "—"],
     }
     st.dataframe(pd.DataFrame(compare), hide_index=True, width="stretch")
 
     st.warning("""
     ⚠️ **Pareto 아님 — high-CAGR / high-vol cousin**:
-    SPACE는 ROCKET 대비 CAGR/Sharpe/Calmar 우월하지만 **MDD/Vol worse**. 단순 "더 좋다"가 아닌 trade-off.
+    SPACE는 ROCKET 대비 CAGR(+7.1pp)/Sharpe(+0.10) 우월하나 **MDD -49% (ROCKET -37%보다 훨씬 깊고),
+    Vol +8.4pp, Calmar edge 미미(+0.03)**. 단순 "더 좋다"가 아닌 명확한 trade-off.
     ROCKET을 SPACE로 *교체*하지 말고 **자금 일부만** (e.g., 30%) 배분 권장.
     """)
 
@@ -683,11 +723,14 @@ with tab_about:
     st.markdown("### ⚠️ 한계 & 면책")
     st.error("""
     **백테스트 한계 (현실 보정 필수)**:
+    - **헤드라인 27.0%는 sector-map 버그 artifact** — Phase 24 백테가 비-SP500 유니버스(~50%)를
+      'Unknown' 단일 섹터로 묶어 숨은 large-cap 틸트 발생. real-sector 재실행(Phase 26b) =
+      **24.99%/0.703/-49%/0.509** = live screener 와 동일 동작. 위 모든 표는 이 보정값 기준.
     - **Synthetic R1000 ≠ 공식 R1000** — top-1000 by mcap 합성, 외국 ADR/일부 REIT 포함
-    - **240/1707 union price 미회복** (M&A 후 yfinance 옛 ticker 부재) — anti-survivorship gap
-    - **Linear slippage α=10은 학술 중간값** — α=20 보수 시나리오에서도 25.4%/0.68 (SP500 +7pp)
+    - **Survivorship 잔존** — candidate pool 이 current survivors + SP500 폐지 261개만 (union 1707 중
+      captured-dead 150개). non-SP500 mid-cap 폐지 누락 → 24.99% 도 **upper bound**.
     - **Live mcap reconstitution 미검증** — 매 분기 fresh fetch 시 mcap snapshot timing 노이즈 가능
-    - **현실 기대치**: 백테 27.0% → 실전 **~22-25% / Sharpe 0.55~0.65**
+    - **현실 기대치**: 백테 25.0% → 실전 **~20-24% / Sharpe 0.55~0.65**
 
     **투자 추천 아님**:
     - 📊 정보 제공 목적: 통계 + 학술 모델 기반 분석
@@ -703,7 +746,7 @@ with tab_about:
     st.markdown("""
     | 항목 | 학술 논문 | 의미 |
     |---|---|---|
-    | **Size Effect** | Banz (1981), Fama-French (1992) | R1000 small/mid-cap 모멘텀 알파 +10pp raw |
+    | **Size Effect** | Banz (1981), Fama-French (1992) | R1000 small/mid-cap 모멘텀 알파 +7.7pp raw |
     | **Liquidity Premium** | Amihud (2002), Pástor-Stambaugh (2003) | ADV20 $5M gate 결정적 |
     | **Linear Slippage** | Almgren-Chriss (2001), Frazzini-Israel-Moskowitz (2018) | α≈10 학술 중간값 |
     | **R1000 Reconstitution** | Madhavan (2003) | 분기 turnover 14.4%/yr = 학계 R1000과 일치 |
@@ -712,10 +755,162 @@ with tab_about:
     """)
 
     st.divider()
-    st.caption("🚀 FRIDAY v1.0 — Phase 24 R1000 SPACE 백테 + Phase 1 live screener (2026-05-28)")
+    st.caption("🚀 FRIDAY v1.0 — R1000 SPACE 백테 (Phase 26b live-faithful) + live screener (2026-05-28)")
     st.caption("🔗 github.com/ehnahcle/FRIDAY")
+
+
+# ============================================================
+# 탭: SURGE (단타 위성)
+# ============================================================
+with tab_surge:
+    st.subheader("🚀 SURGE — 단기 위성 (speculative day-hold)")
+    st.warning(
+        "⚠️ JARVIS(안정 코어)/SPACE(분기)와 **별개 시스템**. 단기 트레이드 후보 발굴기 — "
+        "예산 증식용 위성 자금만. 보유 = **일 단위**, **하드스톱 필수**. "
+        "month-hold 시 음(-) 기대수익 (MAX/squeeze trap)."
+    )
+    s_today, s_manual, s_bt = st.tabs(["🎯 Today's Picks", "🛠 Manual Run", "📊 Backtest Evidence"])
+
+    # ---- Today's Picks ----
+    with s_today:
+        sdf, sts = load_surge()
+        if sdf is None or sdf.empty:
+            st.info("`surge_results.csv` 없음 — **🛠 Manual Run** 탭의 명령으로 먼저 생성하세요.")
+        else:
+            adf, ats = load_surge_attention()
+            has_ai = adf is not None and not adf.empty and "surge_ai_score" in adf.columns
+            show = sdf.copy()
+            if has_ai:
+                mcols = [c for c in ["ticker", "surge_ai_score", "attention_score",
+                                     "narrative", "catalyst_type", "thesis"] if c in adf.columns]
+                show = show.merge(adf[mcols], on="ticker", how="left")
+            show = show.sort_values("surge_score", ascending=False)  # 검증된 ranker로 정렬
+
+            c1, c2, c3 = st.columns(3)
+            c1.metric("후보 수", len(sdf))
+            c2.metric("Screener 갱신", sts.strftime("%m-%d %H:%M") if sts else "—")
+            c3.metric("AI attention", "✅ 적용" if has_ai else "❌ 미적용")
+
+            disp = ["ticker", "name", "setup_type", "surge_score",
+                    "readiness", "explosiveness", "fuel", "catalyst"]
+            if has_ai:
+                disp += ["narrative", "attention_score"]
+            disp += ["price", "ann_vol", "dist_52wh", "short_pct_float", "target_upside", "sector"]
+            disp = [c for c in disp if c in show.columns]
+            v = show[disp].copy()
+            for c in ["surge_score", "readiness", "explosiveness", "fuel", "catalyst", "attention_score"]:
+                if c in v:
+                    v[c] = v[c].apply(lambda x: f"{x:.0f}" if pd.notna(x) else "-")
+            if "price" in v:
+                v["price"] = v["price"].apply(lambda x: f"${x:.2f}" if pd.notna(x) else "-")
+            if "ann_vol" in v:
+                v["ann_vol"] = v["ann_vol"].apply(lambda x: f"{x:.0%}" if pd.notna(x) else "-")
+            if "dist_52wh" in v:
+                v["dist_52wh"] = v["dist_52wh"].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "-")
+            if "short_pct_float" in v:
+                v["short_pct_float"] = v["short_pct_float"].apply(lambda x: f"{x:.0%}" if pd.notna(x) else "-")
+            if "target_upside" in v:
+                v["target_upside"] = v["target_upside"].apply(lambda x: f"{x:+.0%}" if pd.notna(x) else "-")
+            st.dataframe(v, hide_index=True, width="stretch")
+
+            if has_ai and "thesis" in show.columns:
+                with st.expander("🧠 AI narrative thesis (rising/fading 판정 근거)"):
+                    for _, r in show.head(15).iterrows():
+                        if pd.notna(r.get("thesis")):
+                            st.markdown(f"**{r['ticker']}** "
+                                        f"({r.get('narrative','?')} / {r.get('catalyst_type','?')}): "
+                                        f"{r['thesis']}")
+            st.download_button("⬇️ surge_results.csv", sdf.to_csv(index=False),
+                               "surge_results.csv", "text/csv")
+        st.caption(
+            "⚠️ EXIT DISCIPLINE: 보유=일 단위, 하드스톱. **AI narrative는 fade-filter로 사용** — "
+            "'fading'/'extended' 회피용이지 chasing용 아님 (백테: high-attention일수록 net↓, coiled 우선)."
+        )
+
+    # ---- Manual Run ----
+    with s_manual:
+        st.markdown("#### 🛠 수동 실행 — SURGE는 자동 스케줄 없음 (단타라 원할 때 직접)")
+        sdf2, sts2 = load_surge()
+        adf2, ats2 = load_surge_attention()
+        c1, c2 = st.columns(2)
+        c1.metric("surge_results.csv", sts2.strftime("%Y-%m-%d %H:%M") if sts2 else "없음")
+        c2.metric("surge_attention.csv", ats2.strftime("%Y-%m-%d %H:%M") if ats2 else "없음")
+        st.markdown("**1) 스크리너 실행 → today's pick 생성:**")
+        st.code("cd ~/Documents/friday && source ~/Documents/quant_tool/venv/bin/activate\n"
+                "python surge_screener.py --top 30", language="bash")
+        st.markdown("**2) (선택) AI attention re-rank — 뉴스 narrative 판정:**")
+        st.code("python ai_attention.py --top 20 --model haiku", language="bash")
+        st.caption("실행 후 좌측 🔄 새로고침 → Today's Picks 갱신.")
+        st.divider()
+        st.markdown("#### 🔎 수동 티커 체크 — 오늘 후보에 있는지 + 점수")
+        q = st.text_input("티커 입력 (쉼표 구분, 예: IBRX, CYTK, KOD)", key="surge_manual_q")
+        if q:
+            if sdf2 is None or sdf2.empty:
+                st.info("surge_results.csv 먼저 생성하세요.")
+            else:
+                wl = [t.strip().upper() for t in q.split(",") if t.strip()]
+                up = sdf2["ticker"].astype(str).str.upper()
+                hit = sdf2[up.isin(wl)]
+                if not hit.empty:
+                    cols = [c for c in ["ticker", "setup_type", "surge_score", "readiness",
+                                        "explosiveness", "fuel", "catalyst", "price", "ann_vol",
+                                        "short_pct_float", "target_upside"] if c in hit.columns]
+                    st.dataframe(hit[cols], hide_index=True, width="stretch")
+                miss = [t for t in wl if t not in set(up)]
+                if miss:
+                    st.caption(f"오늘 후보에 없음 (게이트 탈락 or 점수권 밖): {', '.join(miss)}")
+
+    # ---- Backtest Evidence ----
+    with s_bt:
+        bt = load_surge_backtest()
+        if not bt:
+            st.info("`surge_backtest_summary.json` 없음.")
+        else:
+            st.caption(f"검증 범위: {bt.get('scope', '')}")
+            st.success(bt.get("headline", ""))
+            oc = bt.get("occurrence", {})
+            st.markdown("#### 📈 급등 발생률 (occurrence) — 신호 검증 ✓")
+            c1, c2, c3 = st.columns(3)
+            c1.metric("+25% base rate", f"{oc.get('hit25_base', 0):.1%}")
+            c2.metric("+25% top-10", f"{oc.get('hit25_top10', 0):.1%}", f"{oc.get('hit25_lift', 0):.1f}x lift")
+            c3.metric("+30% top-10", f"{oc.get('hit30_top10', 0):.1%}")
+            ql = oc.get("quintile_hit25", {})
+            if ql:
+                st.caption("score 5분위별 +25% 발생률 (monotonic = real signal):")
+                st.dataframe(pd.DataFrame([{k: f"{val:.1%}" for k, val in ql.items()}]),
+                             hide_index=True, width="stretch")
+            st.markdown("#### 💵 현실적 NET 거래수익 (survivorship + slippage + exit)")
+            nt = bt.get("net_trade_by_exit", {})
+            rows = nt.get("rows", [])
+            if rows:
+                st.dataframe(pd.DataFrame([
+                    {"Exit rule": r["exit"], "top10 net/trade": f"{r['top10_net']:+.2%}",
+                     "win": f"{r['win']:.0%}", "note": r["note"]} for r in rows
+                ]), hide_index=True, width="stretch")
+            sc = bt.get("survivorship_check", {})
+            st.warning(
+                f"all-gated net (ATR): {nt.get('all_gated_net_atr', 0):+.2%} — "
+                f"**top decile만 양(+); 나머지는 음**.  "
+                f"survivorship: live {sc.get('live_net', 0):+.2%} vs delisted {sc.get('delisted_net', 0):+.2%} "
+                f"(폐지종목이 수익 끌어내림 → naive 백테는 optimistic)"
+            )
+            st.markdown("#### 🧠 AI-attention 엣지 (forward-test, RVOL proxy)")
+            at = bt.get("attention_forwardtest", {})
+            tp = at.get("top10_pick", {})
+            if tp:
+                st.dataframe(pd.DataFrame([{
+                    "RAW pre_score": f"{tp.get('RAW_pre_score', 0):+.2%}",
+                    "RVOL-attn only": f"{tp.get('RVOL_attention_only', 0):+.2%}",
+                    "Blend 50/50": f"{tp.get('BLEND_50_50', 0):+.2%}",
+                }]), hide_index=True, width="stretch")
+            if at.get("finding"):
+                st.info(at["finding"])
+            st.markdown("#### ⚠️ Caveats")
+            for cav in bt.get("caveats", []):
+                st.markdown(f"- {cav}")
+            st.caption(f"스냅샷: {bt.get('as_of', '')} · 상세 CSV: surge_backtest_hardened.csv / surge_attention_fwdtest.csv")
 
 
 st.divider()
 st.caption("💡 새 데이터: `cd ~/Documents/friday && ./run_and_upload.sh` 후 새로고침")
-st.caption("⚠️ 백테 27.0%는 학술 천장 아닌 11년 데이터 honest 측정값 — 미래 알파 보장 X")
+st.caption("⚠️ 백테 25.0% (Phase 26b live-faithful)는 11년 honest 측정값 — survivorship 상 upper bound, 미래 알파 보장 X")
