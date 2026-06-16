@@ -10,7 +10,8 @@ Phase 24 검증 config:
   - Sector cap: 6
   - Trend filter: MA200 OR α6m > 0 (BEAR 시 AND)
   - Vol-Managed 30% layer (운영 dashboard에서 별도 처리)
-  - 백테 26.96% / Sh 0.757 / MDD -42.41% / Calmar 0.636 / Vol 34%
+  - 백테 24.99% / Sh 0.703 / MDD -49.11% / Calmar 0.509 / Vol 34.7% (Phase 26b live-faithful;
+    Phase 24 헤드라인 26.96%/0.757 은 sector-map 버그 artifact)
 
 quant_tool/screener.py 와 분리된 코드 — share-cardiac risk 회피 (5-26 broken state 사례).
 """
@@ -177,8 +178,8 @@ def apply_sell_now_signals(df: pd.DataFrame, regime: str) -> pd.DataFrame:
     """SELL_NOW 룰 — SPACE는 전체 비활성 (백테 환경 일치).
 
     Phase 24 backtest_phase24_r1000.py는 VOLATILITY_SPIKE/MASSIVE_DILUTION/
-    DEEP_DRAWDOWN/TREND_BREAK 룰 전혀 적용 안 함. 27.0% / Sh 0.76 결과는
-    pure picker + ADV20 gate + size-slip만으로 도달.
+    DEEP_DRAWDOWN/TREND_BREAK 룰 전혀 적용 안 함. 백테 결과(live-faithful
+    24.99%/Sh 0.703)는 pure picker + ADV20 gate + size-slip만으로 도달.
 
     SP500용 threshold (vol > 0.80, dilution > 0.15, MDD < -0.50)는 R1000
     small/mid-cap에 너무 엄격 — 운영 결과 Top 20 중 372/835 차단되어

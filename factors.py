@@ -383,13 +383,14 @@ PROFILES = {
         #   - Liquidity gate: ADV20 ≥ $5M (quant_tool ROCKET 기본 $20M보다 완화 — universe 확장).
         #   - Slippage 모델 (백테스트 전용): Almgren-Chriss linear, α=10 (base 10bps + 10·participation·100).
         #   - Vol-Managed 30% layer 유지 (R1000 위에서 Pareto+: +0.14pp CAGR / +0.050 Sharpe / +7.7pp MDD).
-        # 백테스트 결과 (2015-2025, Phase 24 Step 2):
-        #   r1000+gate+slip α=10:        26.82% / 0.707 / -50.09% / Calmar 0.535 / Vol 38.6%
-        #   r1000+gate+slip+VM30 ⭐:     26.96% / 0.757 / -42.41% / Calmar 0.636 / Vol 34.0%  ← 채택 config
+        # 백테스트 결과 (2015-2025, Phase 26b live-faithful = real-sector secmap, live screener 동작 일치):
+        #   r1000+gate+slip α=10:        24.19% / 0.644 / -59.39% / Calmar 0.407 / Vol 39.9%
+        #   r1000+gate+slip+VM30 ⭐:     24.99% / 0.703 / -49.11% / Calmar 0.509 / Vol 34.7%  ← 채택 config
         #   vs ROCKET (Ph17 SP500+VM30): 17.89% / 0.608 / -37.03% / Calmar 0.483 / Vol 26.3%
-        #   Δ: +9.07pp CAGR / +0.149 Sharpe / +0.153 Calmar / Vol +7.7pp / MDD -5.4pp (Pareto 아님, high-CAGR cousin).
-        # 9-cell sensitivity (α∈{5,10,20}×ADV20∈{$2M,$5M,$10M}): 모두 SP500 baseline 위, robust plateau.
-        # 검증: archive/backtests/backtest_phase24_r1000.py + backtest_phase24_sensitivity.py
+        #   Δ: +7.10pp CAGR / +0.095 Sharpe / +0.026 Calmar / Vol +8.4pp / MDD -12.1pp (Pareto 아님, high-CAGR cousin).
+        # NOTE: Phase 24 헤드라인 26.96%/0.757 은 sector-map 버그 artifact (유니버스 ~50%가 'Unknown'
+        #       단일 버킷 → 숨은 large-cap 틸트). 위는 real-sector 재실행 보정값. 24.99% 도 survivorship upper bound.
+        # 검증: archive/backtests/backtest_phase26b_realsectors.py (+ phase24_r1000.py = old secmap baseline)
         "BULL":    {"value": 0.0, "quality": 0.0, "momentum": 0.80, "shareholder": 0.0, "eps_rev": 0.20},
         "NEUTRAL": {"value": 0.0, "quality": 0.0, "momentum": 0.80, "shareholder": 0.0, "eps_rev": 0.20},
         "BEAR":    {"value": 0.0, "quality": 0.0, "momentum": 0.80, "shareholder": 0.0, "eps_rev": 0.20},

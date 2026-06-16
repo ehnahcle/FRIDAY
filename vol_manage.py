@@ -6,12 +6,15 @@ Moreira-Muir (2017) Volatility-Managed Portfolio — FRIDAY 실시간 운영용
 SPACE Cap20/Hold20 (R1000 universe) 위에 변동성 스케일링 layer 추가.
 매월 말 자동으로 권장 노출률 계산 → 대시보드에 표시.
 
-honest PIT 검증 결과 (Phase 24, 2015-2025, SPACE C80_E20 + ADV20 $5M gate + α=10 slip):
-  베이스 (no vol-mgmt):  연 26.82% / Sharpe 0.707 / MDD -50.09% / Calmar 0.535 / Vol 38.6%
-  Vol-Managed 30% 적용:  연 26.96% / Sharpe 0.757 / MDD -42.41% / Calmar 0.636 / Vol 34.0%
-  → lift: ΔCAGR +0.14pp / ΔSharpe +0.050 / ΔMDD +7.7pp shallower (Pareto+ on every dim)
+honest PIT 검증 결과 (Phase 26b live-faithful, 2015-2025, SPACE C80_E20 + ADV20 $5M gate + α=10 slip,
+real-sector secmap = live screener 동작 일치):
+  베이스 (no vol-mgmt):  연 24.19% / Sharpe 0.644 / MDD -59.39% / Calmar 0.407 / Vol 39.9%
+  Vol-Managed 30% 적용:  연 24.99% / Sharpe 0.703 / MDD -49.11% / Calmar 0.509 / Vol 34.7%
+  → lift: ΔCAGR +0.80pp / ΔSharpe +0.059 / ΔMDD +10.3pp shallower / ΔCalmar +0.102 (Pareto+ on every dim)
 
-R1000 위에선 SP500 대비 VM30 lift가 ~3× 큼 — R1000 idiosyncratic crash가 VM 신호를 더 잘 trigger.
+NOTE: Phase 24 헤드라인 26.96%/0.757 은 sector-map 버그 artifact (유니버스 ~50%가 'Unknown'
+단일 버킷 → 숨은 large-cap 틸트). 위는 real-sector 재실행 보정값. VM30 lift 는 honest run 에서
+오히려 더 큼 — R1000 idiosyncratic crash 가 VM 신호를 더 잘 trigger.
 """
 
 from __future__ import annotations
